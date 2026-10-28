@@ -1,0 +1,65 @@
+# Supervision reseau : Zabbix 7.0 LTS + PostgreSQL
+# Demarrage : cp .env.example .env  (changer le mot de passe)  puis  docker compose up -d
+# Interface web : http://localhost:8080  (compte par defaut Admin / zabbix, a changer immediatement)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: zabbix
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - zabbix
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: zabbix
+    ports:
+      - "10051:10051"   # agents actifs
+    networks:
+      - zabbix
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
+    restart: unless-stopped
+    depends_on:
+      - zabbix-server
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: zabbix
+      PHP_TZ: ${TZ:-Africa/Tunis}
+    ports:
+      - "8080:8080"     # interface web
+    networks:
+      - zabbix
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    restart: unless-stopped
+    depends_on:
+      - zabbix-server
+    environment:
+      ZBX_HOSTNAME: "Zabbix server"
+      ZBX_SERVER_HOST: zabbix-server
+    networks:
+      - zabbix
+
+networks:
+  zabbix:
+
+volumes:
+  pgdata:
