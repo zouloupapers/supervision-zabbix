@@ -1,0 +1,25 @@
+! ============================================================
+! SNMPv3 sur un equipement Cisco IOS pour la supervision Zabbix
+! - authentification SHA + chiffrement AES 128 (niveau authPriv)
+! - acces en lecture seule, limite a l'adresse du serveur Zabbix
+! Remplacer 192.168.99.50 par l'IP du serveur Zabbix
+! et les deux CHANGE_ME par des phrases de passe de 8 caracteres minimum
+! ============================================================
+ip access-list standard SNMP-ZABBIX
+ remark Seul le serveur Zabbix peut interroger l'equipement
+ permit host 192.168.99.50
+!
+snmp-server view ZBX-VIEW iso included
+snmp-server group ZBX-GROUP v3 priv read ZBX-VIEW access SNMP-ZABBIX
+snmp-server user zabbix ZBX-GROUP v3 auth sha CHANGE_ME_AUTH priv aes 128 CHANGE_ME_PRIV
+snmp-server location Labo-Tunis
+snmp-server contact admin@lab.local
+!
+! Optionnel : envoyer les traps de changement d'etat des interfaces
+! snmp-server enable traps snmp linkdown linkup
+! snmp-server host 192.168.99.50 version 3 priv zabbix
+!
+! Verification :
+!   show snmp user
+!   show snmp group
+end
